@@ -60,8 +60,23 @@ const App = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (persons.some((p) => p.name === newName)) {
-      alert(`${newName} is already added to phonebook`);
+    const existing = persons.find((p) => p.name === newName);
+    if (existing) {
+      if (
+        !window.confirm(
+          `${newName} is already added to phonebook, replace the old number with a new one?`,
+        )
+      )
+        return;
+      personService
+        .update(existing.id, { ...existing, number: newNumber })
+        .then((updatedPerson) => {
+          setPersons(
+            persons.map((p) => (p.id === existing.id ? updatedPerson : p)),
+          );
+          setNewName("");
+          setNewNumber("");
+        });
       return;
     }
     const personObject = {
