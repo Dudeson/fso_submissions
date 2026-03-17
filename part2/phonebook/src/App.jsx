@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import personService from "./services/persons";
 
 const Filter = ({ search, onChange }) => (
   <div>
@@ -26,24 +27,29 @@ const PersonForm = ({
   </form>
 );
 
-const Person = ({ person }) => (
+const Person = ({ person, onDelete }) => (
   <li>
-    {person.name}: {person.number}
+    {person.name}: {person.number}{" "}
+    <button onClick={() => onDelete(person)}>✕</button>
   </li>
 );
 
-const Persons = ({ persons }) => (
+const Persons = ({ persons, onDelete }) => (
   <ul>
     {persons.map((person) => (
-      <Person key={person.name} person={person} />
+      <Person key={person.id} person={person} onDelete={onDelete} />
     ))}
   </ul>
 );
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: "Arto Hellas", number: "040-123456" },
-  ]);
+  const [persons, setPersons] = useState([]);
+
+  useEffect(() => {
+    personService.getAll().then((data) => {
+      setPersons(data);
+    });
+  }, []);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
   const [search, setSearch] = useState("");
@@ -62,9 +68,19 @@ const App = () => {
       name: newName,
       number: newNumber,
     };
-    setPersons(persons.concat(personObject));
-    setNewName("");
-    setNewNumber("");
+
+    personService.create(personObject).then((savedPerson) => {
+      setPersons(persons.concat(savedPerson));
+      setNewName("");
+      setNewNumber("");
+    });
+  };
+
+  const handleDelete = (person) => {
+    if (!window.confirm(`Delete ${person.name}?`)) return;
+    personService.remove(person.id).then(() => {
+      setPersons(persons.filter((p) => p.id !== person.id));
+    });
   };
 
   return (
@@ -82,7 +98,7 @@ const App = () => {
         onNumberChange={(e) => setNewNumber(e.target.value)}
       />
       <h2>Numbers</h2>
-      <Persons persons={filtered} />
+      <Persons persons={filtered} onDelete={handleDelete} />
     </div>
   );
 };
