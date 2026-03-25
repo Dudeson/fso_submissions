@@ -1,58 +1,31 @@
 import { useState, useEffect } from "react";
 import personService from "./services/persons";
-
-const Filter = ({ search, onChange }) => (
-  <div>
-    filter shown with: <input value={search} onChange={onChange} />
-  </div>
-);
-
-const PersonForm = ({
-  onSubmit,
-  newName,
-  onNameChange,
-  newNumber,
-  onNumberChange,
-}) => (
-  <form onSubmit={onSubmit}>
-    <div>
-      name: <input value={newName} onChange={onNameChange} />
-    </div>
-    <div>
-      number: <input value={newNumber} onChange={onNumberChange} />
-    </div>
-    <div>
-      <button type="submit">add</button>
-    </div>
-  </form>
-);
-
-const Person = ({ person, onDelete }) => (
-  <li>
-    {person.name}: {person.number}{" "}
-    <button onClick={() => onDelete(person)}>✕</button>
-  </li>
-);
-
-const Persons = ({ persons, onDelete }) => (
-  <ul>
-    {persons.map((person) => (
-      <Person key={person.id} person={person} onDelete={onDelete} />
-    ))}
-  </ul>
-);
+import Filter from "./components/Filter";
+import PersonForm from "./components/PersonForm";
+import { Persons } from "./components/Persons";
+import Notification from "./components/Notification";
+import "./index.css";
 
 const App = () => {
   const [persons, setPersons] = useState([]);
+  const [newName, setNewName] = useState("");
+  const [newNumber, setNewNumber] = useState("");
+  const [search, setSearch] = useState("");
+  const [notification, setNotification] = useState({
+    message: null,
+    type: "success",
+  });
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification({ message: null, type }), 5000);
+  };
 
   useEffect(() => {
     personService.getAll().then((data) => {
       setPersons(data);
     });
   }, []);
-  const [newName, setNewName] = useState("");
-  const [newNumber, setNewNumber] = useState("");
-  const [search, setSearch] = useState("");
 
   const filtered = persons.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
@@ -76,6 +49,14 @@ const App = () => {
           );
           setNewName("");
           setNewNumber("");
+          showNotification(`Updated ${existing.name}'s number`);
+        })
+        .catch(() => {
+          showNotification(
+            `Information of ${existing.name} has already been removed from server`,
+            "error",
+          );
+          setPersons(persons.filter((p) => p.id !== existing.id));
         });
       return;
     }
@@ -88,6 +69,7 @@ const App = () => {
       setPersons(persons.concat(savedPerson));
       setNewName("");
       setNewNumber("");
+      showNotification(`Added ${newName}`);
     });
   };
 
@@ -101,6 +83,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notification.message} type={notification.type} />
       <h2>Search</h2>
       <Filter search={search} onChange={(e) => setSearch(e.target.value)} />
 
